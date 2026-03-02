@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   IonContent, IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonSearchbar, IonSegment, IonSegmentButton, IonLabel, IonList,
-  IonItem, IonThumbnail, IonLoading
+  IonItem, IonThumbnail, IonLoading, IonIcon
 } from '@ionic/react';
 import { useLocation, useHistory } from 'react-router-dom';
 import { db } from '../firebaseConfig';
 import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
+import { restaurantOutline, searchOutline } from 'ionicons/icons'; // เพิ่ม searchOutline ไว้เผื่อไม่มีผลค้นหา
 import './RecipeList.css';
 
 const RecipeList: React.FC = () => {
@@ -18,20 +19,19 @@ const RecipeList: React.FC = () => {
   const location = useLocation();
   const history = useHistory();
 
+  // 1. จัดการ Category จาก URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const categoryFilter = params.get('category');
-    if (categoryFilter) {
-      setSelectedCategory(categoryFilter);
-    } else {
-      setSelectedCategory('all');
-    }
+    setSelectedCategory(categoryFilter || 'all');
   }, [location]);
 
+  // 2. ดึงข้อมูล (เพิ่ม Error Handling และตรวจสอบค่าว่าง)
   useEffect(() => {
     setLoading(true);
-    let q;
+    setRecipes([]); // ล้างข้อมูลเก่าออกก่อน เพื่อป้องกันข้อมูลข้ามหมวด
     
+    let q;
     if (selectedCategory === 'all') {
       q = query(collection(db, "recipes"), orderBy("createdAt", "desc"));
     } else {
@@ -43,16 +43,24 @@ const RecipeList: React.FC = () => {
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRecipes(data);
+      if (snapshot.empty) {
+        setRecipes([]);
+      } else {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setRecipes(data);
+      }
+      setLoading(false); // มั่นใจว่าโหลดเสร็จแล้ว
+    }, (error) => {
+      console.error("Firestore Error:", error);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [selectedCategory]);
 
+  // 3. กรองตามข้อความค้นหา
   const filteredRecipes = recipes.filter(r => 
-    r.name.toLowerCase().includes(searchText.toLowerCase())
+    (r.name || "").toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
@@ -71,6 +79,7 @@ const RecipeList: React.FC = () => {
           <IonSearchbar 
             placeholder="ค้นหาเมนูอาหาร" 
             className="custom-searchbar"
+            value={searchText}
             onIonInput={(e) => setSearchText(e.detail.value!)}
           />
         </div>
@@ -88,14 +97,13 @@ const RecipeList: React.FC = () => {
           <IonSegmentButton value="national"><IonLabel>อาหารต่างชาติ</IonLabel></IonSegmentButton>
         </IonSegment>
 
-        <IonLoading isOpen={loading} message="กำลังโหลดสูตรอาหาร..." />
+        {/* ปิด Loading เมื่อโหลดเสร็จ */}
+        <IonLoading isOpen={loading} message="กำลังโหลด..." duration={3000} />
 
         <IonList className="recipe-main-list">
-          {filteredRecipes.length > 0 ? (
+          {!loading && filteredRecipes.length > 0 ? (
             filteredRecipes.map((item) => {
-              // จัดการชื่อที่จะแสดงตรงนี้
               const authorName = item.authorName || item.authorEmail?.split('@')[0] || 'สมาชิก';
-
               return (
                 <IonItem 
                   key={item.id} 
@@ -115,8 +123,18 @@ const RecipeList: React.FC = () => {
                 </IonItem>
               );
             })
-          ) : (
-            !loading && <div className="ion-padding ion-text-center">ไม่พบเมนูอาหารในหมวดนี้</div>
+          ) : !loading && (
+            // ส่วนนี้จะทำงานเมื่อ loading เป็น false และไม่มีข้อมูลใน List
+            <div className="ion-padding ion-text-center" style={{ marginTop: '50px', color: '#888' }}>
+              <IonIcon 
+                icon={searchText ? searchOutline : restaurantOutline} 
+                style={{ fontSize: '64px', opacity: '0.2' }} 
+              />
+              <h3 style={{ marginTop: '15px' }}>
+                {searchText ? `ไม่พบ "${searchText}"` : 'ยังไม่มีเมนูในหมวดนี้'}
+              </h3>
+              <p>ลองเลือกหมวดหมู่อื่นดูนะครับ</p>
+            </div>
           )}
         </IonList>
       </IonContent>

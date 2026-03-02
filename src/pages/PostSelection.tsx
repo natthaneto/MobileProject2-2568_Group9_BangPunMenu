@@ -5,7 +5,7 @@ import {
   IonList, IonItem, IonThumbnail, IonAlert, IonLoading
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
-import { trashOutline, createOutline, addOutline } from 'ionicons/icons';
+import { trashOutline, createOutline, addOutline, documentTextOutline, chatbubblesOutline } from 'ionicons/icons';
 import { auth, db } from '../firebaseConfig';
 import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import './PostSelection.css';
@@ -26,37 +26,59 @@ const PostSelection: React.FC = () => {
       return;
     }
 
-    // 1. ดึงข้อมูลสูตรอาหาร (Real-time)
+    setLoading(true);
+
+    // 1. ตั้งค่า Query สำหรับ Recipes
     const qRecipes = query(
       collection(db, "recipes"),
       where("authorId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
-    const unsubRecipes = onSnapshot(qRecipes, (snapshot) => {
-      setMyRecipes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
 
-    // 2. ดึงข้อมูลฟีดข่าว (Real-time)
+    // 2. ตั้งค่า Query สำหรับ Feeds
     const qFeeds = query(
       collection(db, "feeds"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
-    const unsubFeeds = onSnapshot(qFeeds, (snapshot) => {
-      setMyFeeds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+    // เริ่มต้นติดตามข้อมูล (Real-time)
+    // ใช้ตัวแปรเพื่อเช็คว่าโหลดข้อมูลครั้งแรกเสร็จหรือยัง
+    let recipesLoaded = false;
+    let feedsLoaded = false;
+
+    const unsubRecipes = onSnapshot(qRecipes, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMyRecipes(data);
+      recipesLoaded = true;
+      if (recipesLoaded && feedsLoaded) setLoading(false);
+    }, (err) => {
+      console.error("Recipe Error:", err);
       setLoading(false);
     });
 
-    return () => { unsubRecipes(); unsubFeeds(); };
-  }, [history]);
+    const unsubFeeds = onSnapshot(qFeeds, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMyFeeds(data);
+      feedsLoaded = true;
+      if (recipesLoaded && feedsLoaded) setLoading(false);
+    }, (err) => {
+      console.error("Feed Error:", err);
+      setLoading(false);
+    });
 
-  // ฟังก์ชันยืนยันการลบ
+    // สำคัญ: คืนค่าฟังก์ชันเพื่อ Unsubscribe เมื่อ Component ถูกทำลาย (ป้องกัน Error Internal)
+    return () => {
+      unsubRecipes();
+      unsubFeeds();
+    };
+  }, [history]); // เอา segment ออกจากตรงนี้ เพื่อไม่ให้มัน Re-run ทุกครั้งที่กดสลับแท็บ
+
   const confirmDelete = (id: string, type: 'recipes' | 'feeds') => {
     setSelectedItem({ id, type });
     setShowAlert(true);
   };
 
-  // ฟังก์ชันลบจริง
   const handleDelete = async () => {
     if (selectedItem) {
       try {
@@ -68,7 +90,6 @@ const PostSelection: React.FC = () => {
     }
   };
 
-  // ฟังก์ชันไปหน้าแก้ไข
   const handleEdit = (id: string) => {
     if (segment === 'recipes') {
       history.push(`/edit-recipe/${id}`);
@@ -76,6 +97,9 @@ const PostSelection: React.FC = () => {
       history.push(`/edit-feed/${id}`);
     }
   };
+
+  // เลือกรายการที่จะแสดง
+  const currentItems = segment === 'recipes' ? myRecipes : myFeeds;
 
   return (
     <IonPage>
@@ -89,7 +113,7 @@ const PostSelection: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        {/* ส่วนปุ่มสร้างโพสต์ใหม่ (สี่เหลี่ยมด้านบน) */}
+        {/* ส่วนปุ่มสร้างโพสต์ใหม่ */}
         <div className="create-buttons-grid">
           <div className="square-card" onClick={() => history.push('/create-recipe')}>
             <IonIcon icon={addOutline} className="card-icon" />
@@ -105,7 +129,6 @@ const PostSelection: React.FC = () => {
           <h3>โพสต์ของฉัน</h3>
         </div>
 
-        {/* ส่วนเลือกหมวดหมู่ที่ต้องการจัดการ */}
         <IonSegment value={segment} onIonChange={(e) => setSegment(e.detail.value as any)} className="custom-segment">
           <IonSegmentButton value="recipes">
             <IonLabel>เมนูอาหาร ({myRecipes.length})</IonLabel>
@@ -115,44 +138,51 @@ const PostSelection: React.FC = () => {
           </IonSegmentButton>
         </IonSegment>
 
-        <IonLoading isOpen={loading} message="กำลังโหลดข้อมูลของคุณ..." />
+        {/* Loading เฉพาะตอนเปิดหน้าครั้งแรก */}
+        <IonLoading isOpen={loading} message="กำลังเรียกดูข้อมูล..." duration={3000} />
 
-        {/* รายการโพสต์ของเรา */}
         <IonList lines="full" className="my-items-list">
-          {(segment === 'recipes' ? myRecipes : myFeeds).map((item) => (
-            <IonItem key={item.id} className="manage-item">
-              <IonThumbnail slot="start" className="manage-thumb">
-                <img src={item.imageUrl || item.img || '/assets/2771401.png'} alt="thumb" />
-              </IonThumbnail>
-              
-              <IonLabel>
-                <h2 className="item-title">{item.name || item.title}</h2>
-                <p className="item-subtitle">{item.category || (item.desc ? item.desc.substring(0, 30) + '...' : 'ไม่มีรายละเอียด')}</p>
-              </IonLabel>
-
-              <div slot="end" className="action-buttons">
-                {/* ปุ่มแก้ไข */}
-                <IonButton fill="clear" color="primary" onClick={() => handleEdit(item.id)}>
-                  <IonIcon icon={createOutline} slot="icon-only" />
-                </IonButton>
+          {!loading && currentItems.length > 0 ? (
+            currentItems.map((item) => (
+              <IonItem key={item.id} className="manage-item">
+                <IonThumbnail slot="start" className="manage-thumb">
+                  <img 
+                    src={item.imageUrl || item.img || '/assets/2771401.png'} 
+                    alt="thumb" 
+                    onError={(e: any) => e.target.src='/assets/2771401.png'} 
+                  />
+                </IonThumbnail>
                 
-                {/* ปุ่มลบ */}
-                <IonButton fill="clear" color="danger" onClick={() => confirmDelete(item.id, segment)}>
-                  <IonIcon icon={trashOutline} slot="icon-only" />
-                </IonButton>
-              </div>
-            </IonItem>
-          ))}
+                <IonLabel>
+                  <h2 className="item-title">{item.name || item.title}</h2>
+                  <p className="item-subtitle">
+                    {item.category || (item.desc ? item.desc.substring(0, 30) + '...' : 'ไม่มีรายละเอียด')}
+                  </p>
+                </IonLabel>
 
-          {/* กรณีไม่มีข้อมูล */}
-          {!loading && (segment === 'recipes' ? myRecipes : myFeeds).length === 0 && (
-            <div className="empty-state">
-              <p>คุณยังไม่ได้สร้างโพสต์ในส่วนนี้</p>
+                <div slot="end" className="action-buttons">
+                  <IonButton fill="clear" color="primary" onClick={() => handleEdit(item.id)}>
+                    <IonIcon icon={createOutline} slot="icon-only" />
+                  </IonButton>
+                  <IonButton fill="clear" color="danger" onClick={() => confirmDelete(item.id, segment)}>
+                    <IonIcon icon={trashOutline} slot="icon-only" />
+                  </IonButton>
+                </div>
+              </IonItem>
+            ))
+          ) : !loading && (
+            /* กรณีไม่มีโพสต์ (Empty State) */
+            <div className="ion-padding ion-text-center" style={{ marginTop: '50px', color: '#999' }}>
+              <IonIcon 
+                icon={segment === 'recipes' ? documentTextOutline : chatbubblesOutline} 
+                style={{ fontSize: '72px', opacity: '0.15' }} 
+              />
+              <h3 style={{ marginTop: '20px' }}>ยังไม่มี{segment === 'recipes' ? 'สูตรอาหาร' : 'โพสต์ฟีด'}ของคุณ</h3>
+              <p>เริ่มสร้างโพสต์เพื่อแบ่งปันเมนูอร่อยๆ กันเลย!</p>
             </div>
           )}
         </IonList>
 
-        {/* แจ้งเตือนยืนยันการลบ */}
         <IonAlert
           isOpen={showAlert}
           onDidDismiss={() => setShowAlert(false)}
@@ -160,11 +190,7 @@ const PostSelection: React.FC = () => {
           message={'ข้อมูลนี้จะหายไปถาวร คุณแน่ใจหรือไม่?'}
           buttons={[
             { text: 'ยกเลิก', role: 'cancel' },
-            { 
-              text: 'ลบเลย', 
-              handler: handleDelete,
-              cssClass: 'alert-button-confirm'
-            }
+            { text: 'ลบเลย', handler: handleDelete, cssClass: 'danger-text' }
           ]}
         />
       </IonContent>

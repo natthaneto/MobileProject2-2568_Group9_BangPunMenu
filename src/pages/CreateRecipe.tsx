@@ -20,14 +20,28 @@ const CreateRecipe: React.FC = () => {
   const history = useHistory();
 
   const handleSendRecipe = async () => {
-    const user = auth.currentUser; // ดึงข้อมูล User ที่กำลังใช้งานอยู่
+    const user = auth.currentUser;
 
     if (!user) {
       setToastMsg("กรุณาเข้าสู่ระบบก่อน");
       return;
     }
-    if (!name.trim() || !category) {
-      setToastMsg("กรุณากรอกชื่อเมนูและเลือกหมวดหมู่");
+
+    // --- บังคับกรอกทุกช่อง ---
+    if (!name.trim()) {
+      setToastMsg("กรุณากรอกชื่อเมนูอาหาร");
+      return;
+    }
+    if (!category) {
+      setToastMsg("กรุณาเลือกหมวดหมู่");
+      return;
+    }
+    if (!ingredients.trim()) {
+      setToastMsg("กรุณาระบุวัตถุดิบ");
+      return;
+    }
+    if (!steps.trim()) {
+      setToastMsg("กรุณาระบุขั้นตอนการทำ");
       return;
     }
 
@@ -38,12 +52,12 @@ const CreateRecipe: React.FC = () => {
       await addDoc(collection(db, "recipes"), {
         name: name.trim(),
         category: category,
-        ingredients: ingredients,
-        steps: steps,
+        ingredients: ingredients.trim(),
+        steps: steps.trim(),
         imageUrl: finalImageUrl,
-        // ดึงข้อมูลจาก user object โดยตรง
         authorId: user.uid,
-authorName: user.displayName || user.email?.split('@')[0] || "สมาชิก",        authorEmail: user.email,
+        authorName: user.displayName || user.email?.split('@')[0] || "สมาชิก",
+        authorEmail: user.email,
         authorAvatar: user.photoURL || "https://ionicframework.com/docs/img/demos/avatar.svg",
         createdAt: serverTimestamp()
       });
@@ -75,7 +89,7 @@ authorName: user.displayName || user.email?.split('@')[0] || "สมาชิก
         </div>
 
         <IonItem lines="none" className="custom-input-item">
-          <IonLabel position="stacked">ชื่อเมนูอาหาร</IonLabel>
+          <IonLabel position="stacked">ชื่อเมนูอาหาร <span style={{color:'red'}}>*</span></IonLabel>
           <IonInput
             placeholder="เช่น ข้าวผัดกะเพรา"
             value={name}
@@ -84,7 +98,7 @@ authorName: user.displayName || user.email?.split('@')[0] || "สมาชิก
         </IonItem>
 
         <IonItem lines="none" className="custom-input-item">
-          <IonLabel position="stacked">หมวดหมู่</IonLabel>
+          <IonLabel position="stacked">หมวดหมู่ <span style={{color:'red'}}>*</span></IonLabel>
           <IonSelect
             placeholder="เลือกหมวดหมู่"
             value={category}
@@ -98,7 +112,7 @@ authorName: user.displayName || user.email?.split('@')[0] || "สมาชิก
         </IonItem>
 
         <IonItem lines="none" className="custom-input-item">
-          <IonLabel position="stacked">วัตถุดิบ</IonLabel>
+          <IonLabel position="stacked">วัตถุดิบ <span style={{color:'red'}}>*</span></IonLabel>
           <IonTextarea
             placeholder="ระบุวัตถุดิบ..."
             value={ingredients}
@@ -108,7 +122,7 @@ authorName: user.displayName || user.email?.split('@')[0] || "สมาชิก
         </IonItem>
 
         <IonItem lines="none" className="custom-input-item">
-          <IonLabel position="stacked">ขั้นตอนการทำ</IonLabel>
+          <IonLabel position="stacked">ขั้นตอนการทำ <span style={{color:'red'}}>*</span></IonLabel>
           <IonTextarea
             placeholder="ระบุวิธีทำ..."
             value={steps}

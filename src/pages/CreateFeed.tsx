@@ -3,7 +3,7 @@ import {
   IonContent, IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
   IonItem, IonLabel, IonInput, IonTextarea, IonButton, IonLoading, IonToast, IonIcon
 } from '@ionic/react';
-import { imageOutline } from 'ionicons/icons'; // เพิ่มตัวนี้เข้ามา
+import { imageOutline } from 'ionicons/icons';
 import { auth, db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useHistory } from 'react-router-dom';
@@ -22,6 +22,8 @@ const CreateFeed: React.FC = () => {
       setToastMsg("กรุณาเข้าสู่ระบบก่อนโพสต์");
       return;
     }
+
+    // --- บังคับกรอกเฉพาะหัวข้อ ---
     if (!title.trim()) {
       setToastMsg("กรุณาใส่หัวข้อที่ต้องการคุย");
       return;
@@ -29,17 +31,13 @@ const CreateFeed: React.FC = () => {
 
     setLoading(true);
     try {
-      // ใช้รูปภาพเริ่มต้นจากในเครื่องของคุณ
       const feedImageUrl = "/assets/2771401.png";
-
-      // Logic ดึงชื่อ: ถ้าไม่มี displayName ให้ตัดชื่อหน้า @ จาก Email
       const authorDisplayName = user.displayName || user.email?.split('@')[0] || "สมาชิก";
 
       await addDoc(collection(db, "feeds"), {
         title: title.trim(),
-        desc: desc,
+        desc: desc.trim(), // ไม่บังคับ แต่ใช้ trim เพื่อความสะอาดของข้อมูล
         img: feedImageUrl,
-        // เก็บข้อมูลชื่อที่ดึงจาก Email ลงไปด้วย
         userName: authorDisplayName,
         userEmail: user.email,
         userAvatar: user.photoURL || "https://ionicframework.com/docs/img/demos/avatar.svg",
@@ -67,20 +65,15 @@ const CreateFeed: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        {/* ส่วนแสดงรูปภาพพรีวิว */}
-        <div className="image-upload-box" style={{ backgroundSize: 'cover', position: 'relative' }}>
+        <div className="image-upload-box">
           <div className="upload-placeholder" style={{ background: 'rgba(255,255,255,0.6)', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
             <IonIcon icon={imageOutline} style={{ fontSize: '40px' }} />
             <p>ระบบรูปภาพปิดชั่วคราว (ใช้ภาพเริ่มต้น)</p>
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', margin: '20px 0', color: '#688049' }}>
-          <h2 style={{ fontWeight: 'bold' }}></h2>
-        </div>
-
         <IonItem lines="none" className="custom-input-item">
-          <IonLabel position="stacked">หัวข้อโพสต์</IonLabel>
+          <IonLabel position="stacked">หัวข้อโพสต์ <span style={{color:'red'}}>*</span></IonLabel>
           <IonInput 
             placeholder="คุณคิดอะไรอยู่..." 
             value={title}
@@ -89,7 +82,7 @@ const CreateFeed: React.FC = () => {
         </IonItem>
 
         <IonItem lines="none" className="custom-input-item">
-          <IonLabel position="stacked">รายละเอียด</IonLabel>
+          <IonLabel position="stacked">รายละเอียด (ระบุหรือไม่ก็ได้)</IonLabel>
           <IonTextarea 
             placeholder="เล่ารายละเอียดเพิ่มเติมที่นี่..." 
             value={desc}

@@ -26,7 +26,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     // ดึงเมนูทั้งหมด เรียงจากใหม่ไปเก่า และจำกัดแค่ 5-10 รายการเพื่อความสวยงามในหน้า Home
     const q = query(collection(db, "recipes"), orderBy("createdAt", "desc"), limit(10));
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setRecipes(data);
@@ -76,9 +76,9 @@ const Home: React.FC = () => {
         {/* ส่วนแสดงหมวดหมู่ */}
         <div className="recipe-display-grid">
           {categories.map((item) => (
-            <div 
-              key={item.id} 
-              className="recipe-card-item" 
+            <div
+              key={item.id}
+              className="recipe-card-item"
               style={{ backgroundImage: `url(${item.img})` }}
               onClick={() => handleCategoryClick(item.id)}
             >
@@ -92,20 +92,18 @@ const Home: React.FC = () => {
         {/* 5. ส่วนแสดงเมนูอาหารล่าสุด (เปลี่ยนจาก Feed เดิม) */}
         <div className="community-feed-section">
           <h2 className="section-title">เมนูแนะนำล่าสุด</h2>
-          
+
           {loading ? (
             <div className="ion-text-center ion-padding">กำลังโหลดเมนูอาหาร...</div>
-          ) : (
+          ) : recipes.length > 0 ? (
             <IonList className="feed-ion-list">
               {recipes.map((item) => {
-                // Logic ชื่อผู้โพสต์เหมือนเดิม
                 const authorDisplay = item.authorName || item.authorEmail?.split('@')[0] || 'สมาชิก';
-                
                 return (
-                  <IonItem 
-                    key={item.id} 
-                    lines="none" 
-                    className="custom-feed-item" 
+                  <IonItem
+                    key={item.id}
+                    lines="none"
+                    className="custom-feed-item"
                     onClick={() => history.push(`/recipe-detail/${item.id}`)}
                   >
                     <IonLabel className="label-container">
@@ -119,11 +117,11 @@ const Home: React.FC = () => {
                   </IonItem>
                 );
               })}
-              
-              {recipes.length === 0 && (
-                <div className="ion-text-center ion-padding">ยังไม่มีข้อมูลเมนูอาหาร</div>
-              )}
             </IonList>
+          ) : (
+            <div className="ion-text-center ion-padding" style={{ color: '#888' }}>
+              <p>ยังไม่มีการโพสต์เมนูอาหารในขณะนี้</p>
+            </div>
           )}
         </div>
       </IonContent>
