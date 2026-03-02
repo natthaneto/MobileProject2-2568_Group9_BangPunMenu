@@ -4,15 +4,19 @@ import { IonReactRouter } from '@ionic/react-router';
 
 /* Pages */
 import Home from './pages/Home';
-import RecipeList from './pages/RecipeList'; 
+import RecipeList from './pages/RecipeList';
 import Feed from './pages/Feed';
-import PostSelection from './pages/PostSelection'; 
+import PostSelection from './pages/PostSelection';
 import CreateRecipe from './pages/CreateRecipe';
 import CreateFeed from './pages/CreateFeed';
 import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import Login from './pages/Login';       // เพิ่มหน้า Login
 import Register from './pages/Register'; // เพิ่มหน้า Register
+import RecipeDetail from './pages/RecipeDetail';
+import FeedDetail from './pages/FeedDetail';
+import EditRecipe from './pages/EditRecipe';
+import EditFeed from './pages/EditFeed';
 
 /* Components */
 import BottomTabs from './components/BottomTabs';
@@ -38,8 +42,8 @@ const App: React.FC = () => (
     <IonReactRouter>
       {/* BottomTabs จะแสดงในทุกหน้า หากต้องการซ่อนในหน้า Login/Register 
           ต้องไปจัดการเงื่อนไขภายในตัวคอมโพเนนต์ BottomTabs เองครับ */}
-      <BottomTabs /> 
-      
+      <BottomTabs />
+
       <IonRouterOutlet id="main">
         {/* Auth Routes */}
         <Route exact path="/login">
@@ -71,7 +75,12 @@ const App: React.FC = () => (
         <Route exact path="/profile">
           <Profile />
         </Route>
-        
+        <Route path="/recipe-detail/:id" component={RecipeDetail} exact={true} />
+        <Route path="/feed-detail/:id" component={FeedDetail} exact={true} />
+        <Route path="/edit-recipe/:id" component={EditRecipe} exact={true} />
+        <Route path="/edit-feed/:id" component={EditFeed} exact={true} />
+
+
         {/* Edit Profile Route (วางไว้ก่อน Redirect) */}
         <Route exact path="/edit-profile">
           <EditProfile />

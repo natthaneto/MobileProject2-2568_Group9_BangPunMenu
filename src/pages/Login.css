@@ -1,31 +1,60 @@
+/* คอนเทนเนอร์หลักจัดกึ่งกลาง */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  min-height: 80vh;
+  padding: 0 10px;
+}
+
 .login-header {
-  margin-top: 80px;
+  text-align: center;
   margin-bottom: 40px;
 }
 
 .login-header h1 {
-  font-size: 32px;
-  font-weight: bold;
-  color: #688049; /* สีเขียวโครงการ */
+  font-size: 36px;
+  font-weight: 800;
+  color: #688049; 
+  margin: 0;
 }
 
+/* ปรับแต่ง Input แบบไร้เส้นกรอบ */
 .custom-input-item {
-  --background: transparent;
-  --padding-start: 0;
-  --inner-padding-end: 0;
+  --background: #f9f9f9; /* ใช้สีพื้นหลังแทนเส้นกรอบ */
+  --border-radius: 12px;
+  margin-bottom: 16px;
+  --padding-start: 15px;
+  --highlight-color-focused: none; /* ลบเส้นตอนกด focus */
+  --inner-border-width: 0;         /* ลบเส้นใต้ด้านในของ Ionic */
+  border: none !important;         /* บังคับลบเส้นกรอบออกทั้งหมด */
 }
 
+/* ปรับแต่ง Label */
+ion-label {
+  color: #688049 !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  font-size: 14px;
+}
+
+/* ปุ่มหลัก */
 .main-btn {
   --background: #688049;
-  --border-radius: 10px;
-  margin-top: 20px;
-  height: 50px;
+  --border-radius: 12px;
+  height: 55px;
   font-weight: bold;
+  margin-top: 20px;
+  font-size: 1.1rem;
 }
 
 .clickable-text {
-  display: block;
-  margin-top: 20px;
-  cursor: pointer;
-  font-size: 14px;
+  text-align: center;
+  margin-top: 25px;
+}
+
+.clickable-text b {
+  color: #688049;
+  text-decoration: underline;
 }

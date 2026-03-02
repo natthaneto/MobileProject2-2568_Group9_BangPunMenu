@@ -1,58 +1,49 @@
-import React from 'react';
-import BottomTabs from '../components/BottomTabs'; // ดึงบาร์ด้านล่างที่แยกไฟล์ไว้มาใช้ 
+import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
-  IonContent,
-  IonPage,
-  IonIcon,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonThumbnail
+  IonContent, IonPage, IonIcon, IonGrid, IonRow, IonCol, IonList, IonItem,
+  IonLabel, IonThumbnail, IonLoading
 } from '@ionic/react';
-import {
-  searchOutline,
-  restaurantOutline,
-  chatbubbleEllipsesOutline
-} from 'ionicons/icons';
+import { searchOutline, restaurantOutline, chatbubbleEllipsesOutline } from 'ionicons/icons';
+import { db } from '../firebaseConfig'; // นำเข้า db
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'; // นำเข้า Firestore tools
 import './Home.css';
 
 const Home: React.FC = () => {
   const history = useHistory();
+  const [recipes, setRecipes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // ข้อมูลจำลองสำหรับเมนูอาหาร (Mockup Data) [cite: 39]
-  const recipeMenus = [
-    { id: 1, name: 'ข้าวผัดอเมริกัน', img: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=400&q=80' },
-    { id: 2, name: 'ส้มตำ', img: 'https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?auto=format&fit=crop&w=400&q=80' },
-    { id: 3, name: 'ผัดกะเพรา', img: 'https://images.unsplash.com/photo-1626804475297-4160aae013eb?auto=format&fit=crop&w=400&q=80' },
-    { id: 4, name: 'สปาเก็ตตี้', img: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=400&q=80' },
+  // 1. หมวดหมู่สำหรับการนำทาง
+  const categories = [
+    { id: 'esarn', name: 'อาหารอีสาน', img: 'https://www.thaifoodcookbook.net/wp-content/uploads/2025/05/%E0%B9%80%E0%B8%A1%E0%B8%99%E0%B8%B9%E0%B8%AD%E0%B8%B2%E0%B8%AB%E0%B8%B2%E0%B8%A3%E0%B8%AD%E0%B8%B5%E0%B8%AA%E0%B8%B2%E0%B8%99%E0%B8%AA%E0%B8%B8%E0%B8%94%E0%B9%81%E0%B8%8B%E0%B9%88%E0%B8%9A%E0%B8%A2%E0%B8%AD%E0%B8%94%E0%B8%99%E0%B8%B4%E0%B8%A2%E0%B8%A12025.jpg' },
+    { id: 'thai', name: 'อาหารไทย', img: 'https://www.allthaievent.com/images/event/25453.jpg' },
+    { id: 'halal', name: 'อาหารฮาลาล', img: 'https://i0.wp.com/abunajirestaurant.com/wp-content/uploads/2025/07/halal-food.jpg?fit=1000%2C674&ssl=1' },
+    { id: 'national', name: 'อาหารต่างชาติ', img: 'https://t4.ftcdn.net/jpg/02/25/96/47/360_F_225964798_yBf4tI79fmIGWwsZpo1K5lhsEQCXy2Pn.jpg' },
   ];
 
-  // ข้อมูลจำลองสำหรับหน้าฟีด (Community Feed) [cite: 3, 31, 33]
-  const feedPosts = [
-    {
-      id: 1,
-      title: 'คุณคิดยังไงกับเจ้านี่',
-      desc: 'คือผมเพิ่งย้ายมาอยู่ที่ Sweden เมื่อเดือนก่อนเจ้านายผมมาแนะนำสูตรอาหารให้ คุณคิดว่ามันแปลกไหม',
-      comments: 1,
-      img: 'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=200&q=80'
-    },
-    {
-      id: 2,
-      title: 'อาหารนี้มันโคตรบ้า',
-      desc: 'คุณต้องไม่เชื่อแน่ๆว่าผมได้ทานเจ้านี่เข้าไป',
-      comments: 2,
-      img: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=200&q=80'
-    }
-  ];
+  // 2. ดึงข้อมูลเมนูอาหารล่าสุดจาก Firestore
+  useEffect(() => {
+    // ดึงเมนูทั้งหมด เรียงจากใหม่ไปเก่า และจำกัดแค่ 5-10 รายการเพื่อความสวยงามในหน้า Home
+    const q = query(collection(db, "recipes"), orderBy("createdAt", "desc"), limit(10));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setRecipes(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleCategoryClick = (categoryId: string) => {
+    history.push(`/recipes?category=${categoryId}`);
+  };
 
   return (
     <IonPage>
       <IonContent fullscreen>
-        {/* 1. ส่วน Header Search (ระบบจัดการผู้ใช้งานเบื้องต้น) [cite: 24, 29] */}
+        {/* Header Search */}
         <div className="custom-header">
           <div className="search-box">
             <IonIcon icon={searchOutline} className="search-icon" />
@@ -61,12 +52,12 @@ const Home: React.FC = () => {
           <img src="https://ionicframework.com/docs/img/demos/avatar.svg" alt="Profile" className="profile-avatar" />
         </div>
 
-        {/* 2. ส่วน Banner (ใช้ไฟล์ภาพ imagebar.png จากโฟลเดอร์ assets) [cite: 1] */}
+        {/* Banner */}
         <div className="hero-banner">
           <img src="/assets/imagebar.png" alt="Banner" className="banner-img" />
         </div>
 
-        {/* 3. ปุ่มเมนูหลัก (Action Buttons) [cite: 17, 31] */}
+        {/* ปุ่มเมนูหลัก */}
         <IonGrid className="action-buttons-grid">
           <IonRow>
             <IonCol size="6">
@@ -82,38 +73,60 @@ const Home: React.FC = () => {
           </IonRow>
         </IonGrid>
 
-        {/* 4. ส่วนแสดงรูปภาพเมนูอาหาร (Recipe Grid) [cite: 27, 29] */}
+        {/* ส่วนแสดงหมวดหมู่ */}
         <div className="recipe-display-grid">
-          {recipeMenus.map((menu) => (
-            <div key={menu.id} className="recipe-card-item" style={{ backgroundImage: `url(${menu.img})` }}>
+          {categories.map((item) => (
+            <div 
+              key={item.id} 
+              className="recipe-card-item" 
+              style={{ backgroundImage: `url(${item.img})` }}
+              onClick={() => handleCategoryClick(item.id)}
+            >
               <div className="recipe-overlay-text">
-                <span>{menu.name}</span>
+                <span>{item.name}</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* 5. ส่วนหน้าฟีด (Community Section) [cite: 31, 33] */}
+        {/* 5. ส่วนแสดงเมนูอาหารล่าสุด (เปลี่ยนจาก Feed เดิม) */}
         <div className="community-feed-section">
-          <h2 className="section-title">หน้าฟีด</h2>
-          <IonList className="feed-ion-list">
-            {feedPosts.map((post) => (
-              <IonItem key={post.id} lines="none" className="custom-feed-item">
-                <IonLabel className="label-container">
-                  <h3 className="post-title">{post.title}</h3>
-                  <p className="post-description">{post.desc}</p>
-                  <span className="post-comment-count">{post.comments} comments</span>
-                </IonLabel>
-                <IonThumbnail slot="end" className="post-thumb">
-                  <img src={post.img} alt={post.title} />
-                </IonThumbnail>
-              </IonItem>
-            ))}
-          </IonList>
+          <h2 className="section-title">เมนูแนะนำล่าสุด</h2>
+          
+          {loading ? (
+            <div className="ion-text-center ion-padding">กำลังโหลดเมนูอาหาร...</div>
+          ) : (
+            <IonList className="feed-ion-list">
+              {recipes.map((item) => {
+                // Logic ชื่อผู้โพสต์เหมือนเดิม
+                const authorDisplay = item.authorName || item.authorEmail?.split('@')[0] || 'สมาชิก';
+                
+                return (
+                  <IonItem 
+                    key={item.id} 
+                    lines="none" 
+                    className="custom-feed-item" 
+                    onClick={() => history.push(`/recipe-detail/${item.id}`)}
+                  >
+                    <IonLabel className="label-container">
+                      <h3 className="post-title">{item.name}</h3>
+                      <p className="post-description">โดย {authorDisplay}</p>
+                      <span className="post-comment-count">ประเภท: {item.category}</span>
+                    </IonLabel>
+                    <IonThumbnail slot="end" className="post-thumb">
+                      <img src={item.imageUrl || '/assets/2771401.png'} alt={item.name} />
+                    </IonThumbnail>
+                  </IonItem>
+                );
+              })}
+              
+              {recipes.length === 0 && (
+                <div className="ion-text-center ion-padding">ยังไม่มีข้อมูลเมนูอาหาร</div>
+              )}
+            </IonList>
+          )}
         </div>
       </IonContent>
-
-
     </IonPage>
   );
 };

@@ -1,129 +1,107 @@
 import React, { useState } from 'react';
-import { 
-  IonContent, 
-  IonPage, 
-  IonHeader, 
-  IonToolbar, 
-  IonTitle, 
-  IonButton, 
-  IonItem, 
-  IonInput, 
-  IonTextarea, 
-  IonLoading, 
-  IonButtons, 
-  IonBackButton,
-  IonIcon,
-  IonLabel
+import {
+  IonContent, IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
+  IonItem, IonLabel, IonInput, IonTextarea, IonButton, IonLoading, IonToast, IonIcon
 } from '@ionic/react';
-import { cameraOutline } from 'ionicons/icons';
-import { auth, db, storage } from '../firebaseConfig';
+import { imageOutline } from 'ionicons/icons'; // เพิ่มตัวนี้เข้ามา
+import { auth, db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useHistory } from 'react-router-dom';
-import './CreateFeed.css'; // *** ตรวจสอบชื่อไฟล์ CSS ให้ตรงกันนะครับ ***
+import './CreateRecipe.css'; 
 
 const CreateFeed: React.FC = () => {
-  const [title, setTitle] = useState(''); // เพิ่ม State สำหรับหัวข้อ
-  const [caption, setCaption] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState('');
+  const [title, setTitle] = useState('');
+  const [desc, setDesc] = useState('');
   const [loading, setLoading] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
   const history = useHistory();
 
-  const handlePost = async () => {
+  const handlePostFeed = async () => {
     const user = auth.currentUser;
-    if (!user || !imageFile || !title) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+    if (!user) {
+      setToastMsg("กรุณาเข้าสู่ระบบก่อนโพสต์");
+      return;
+    }
+    if (!title.trim()) {
+      setToastMsg("กรุณาใส่หัวข้อที่ต้องการคุย");
+      return;
+    }
 
     setLoading(true);
     try {
-      const fileRef = ref(storage, `feeds/${user.uid}_${Date.now()}`);
-      await uploadBytes(fileRef, imageFile);
-      const imageUrl = await getDownloadURL(fileRef);
+      // ใช้รูปภาพเริ่มต้นจากในเครื่องของคุณ
+      const feedImageUrl = "/assets/2771401.png";
+
+      // Logic ดึงชื่อ: ถ้าไม่มี displayName ให้ตัดชื่อหน้า @ จาก Email
+      const authorDisplayName = user.displayName || user.email?.split('@')[0] || "สมาชิก";
 
       await addDoc(collection(db, "feeds"), {
+        title: title.trim(),
+        desc: desc,
+        img: feedImageUrl,
+        // เก็บข้อมูลชื่อที่ดึงจาก Email ลงไปด้วย
+        userName: authorDisplayName,
+        userEmail: user.email,
+        userAvatar: user.photoURL || "https://ionicframework.com/docs/img/demos/avatar.svg",
         userId: user.uid,
-        userName: user.displayName || "Natthanet",
-        title: title, // บันทึกหัวข้อ
-        caption: caption,
-        imageUrl: imageUrl,
+        comments: 0,
         createdAt: serverTimestamp()
       });
 
       setLoading(false);
-      history.push('/feed');
-    } catch (e) {
-      console.error(e);
+      setToastMsg("โพสต์ฟีดสำเร็จ!");
+      setTimeout(() => history.push('/home'), 1500);
+    } catch (error: any) {
       setLoading(false);
-      alert("เกิดข้อผิดพลาดในการโพสต์");
+      setToastMsg("เกิดข้อผิดพลาด: " + error.message);
     }
   };
 
   return (
     <IonPage>
       <IonHeader className="ion-no-border">
-        <IonToolbar className="create-feed-toolbar">
-          <IonButtons slot="start">
-            <IonBackButton defaultHref="/feed" color="light" />
-          </IonButtons>
-          <IonTitle>สร้างโพสต์ใหม่</IonTitle>
+        <IonToolbar className="create-recipe-toolbar">
+          <IonButtons slot="start"><IonBackButton defaultHref="/home" color="light" /></IonButtons>
+          <IonTitle>เขียนโพสต์ใหม่</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <div className="create-feed-container">
-          
-          {/* ส่วนอัปโหลดรูปภาพ */}
-          <div className="image-upload-box" onClick={() => document.getElementById('file-input')?.click()}>
-            {preview ? (
-              <img src={preview} alt="Preview" className="feed-preview-img" />
-            ) : (
-              <div className="upload-placeholder">
-                <IonIcon icon={cameraOutline} />
-                <p>คลิกเพื่อเพิ่มรูปภาพ</p>
-              </div>
-            )}
-            <input 
-              id="file-input"
-              type="file" 
-              accept="image/*" 
-              hidden 
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setImageFile(file);
-                  setPreview(URL.createObjectURL(file));
-                }
-              }} 
-            />
+        {/* ส่วนแสดงรูปภาพพรีวิว */}
+        <div className="image-upload-box" style={{ backgroundSize: 'cover', position: 'relative' }}>
+          <div className="upload-placeholder" style={{ background: 'rgba(255,255,255,0.6)', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            <IonIcon icon={imageOutline} style={{ fontSize: '40px' }} />
+            <p>ระบบรูปภาพปิดชั่วคราว (ใช้ภาพเริ่มต้น)</p>
           </div>
-
-          <div className="form-group">
-            <IonItem lines="none" className="custom-input-item">
-              <IonLabel position="stacked">หัวข้อโพสต์</IonLabel>
-              <IonInput 
-                placeholder="ระบุหัวข้อที่น่าสนใจ" 
-                value={title}
-                onIonInput={(e) => setTitle(e.detail.value!)} 
-              />
-            </IonItem>
-
-            <IonItem lines="none" className="custom-input-item">
-              <IonLabel position="stacked">คำบรรยาย</IonLabel>
-              <IonTextarea 
-                placeholder="เขียนอะไรบางอย่างเกี่ยวกับมื้อนี้..." 
-                rows={4}
-                value={caption}
-                onIonInput={(e) => setCaption(e.detail.value!)} 
-              />
-            </IonItem>
-          </div>
-
-          <IonButton expand="block" className="post-btn" onClick={handlePost} disabled={loading}>
-            แชร์โพสต์เลย
-          </IonButton>
         </div>
 
-        <IonLoading isOpen={loading} message="กำลังอัปโหลดโพสต์..." />
+        <div style={{ textAlign: 'center', margin: '20px 0', color: '#688049' }}>
+          <h2 style={{ fontWeight: 'bold' }}></h2>
+        </div>
+
+        <IonItem lines="none" className="custom-input-item">
+          <IonLabel position="stacked">หัวข้อโพสต์</IonLabel>
+          <IonInput 
+            placeholder="คุณคิดอะไรอยู่..." 
+            value={title}
+            onIonInput={(e) => setTitle(e.detail.value!)} 
+          />
+        </IonItem>
+
+        <IonItem lines="none" className="custom-input-item">
+          <IonLabel position="stacked">รายละเอียด</IonLabel>
+          <IonTextarea 
+            placeholder="เล่ารายละเอียดเพิ่มเติมที่นี่..." 
+            value={desc}
+            onIonInput={(e) => setDesc(e.detail.value!)} 
+            rows={8} 
+          />
+        </IonItem>
+
+        <IonButton expand="block" onClick={handlePostFeed} className="post-btn">โพสต์ลงหน้าฟีด</IonButton>
+        
+        <IonLoading isOpen={loading} message="กำลังส่งโพสต์..." />
+        <IonToast isOpen={!!toastMsg} message={toastMsg} duration={2000} onDidDismiss={() => setToastMsg('')} />
       </IonContent>
     </IonPage>
   );

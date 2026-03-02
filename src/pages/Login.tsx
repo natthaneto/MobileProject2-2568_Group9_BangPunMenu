@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
-  IonContent, IonPage, IonItem, IonInput, IonButton, IonText, IonLoading, IonToast
+  IonContent, IonPage, IonItem, IonInput, IonButton, IonText, IonLoading, IonToast, IonLabel
 } from '@ionic/react';
 import { auth } from '../firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useHistory } from 'react-router-dom';
+import './Login.css'; // ตรวจสอบว่าชื่อไฟล์ CSS ตรงกันนะครับ
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -31,35 +32,41 @@ const Login: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent className="ion-padding ion-text-center">
-        <div style={{ marginTop: '80px', marginBottom: '40px' }}>
-          <h1 style={{ color: '#688049', fontWeight: 'bold' }}>BangPunMenu</h1>
-          <p>เข้าสู่ระบบเพื่อแบ่งปันเมนูอาหาร</p>
+      <IonContent className="ion-padding">
+        <div className="login-container">
+          <div className="login-header">
+            <h1>BangPunMenu</h1>
+            <p>เข้าสู่ระบบเพื่อแบ่งปันเมนูอาหาร</p>
+          </div>
+
+          <div className="form-group">
+            <IonItem lines="none" className="custom-input-item">
+              <IonLabel position="stacked">Email</IonLabel>
+              <IonInput
+                type="email"
+                placeholder="example@gmail.com"
+                onIonInput={(e) => setEmail(e.detail.value!)}
+              />
+            </IonItem>
+
+            <IonItem lines="none" className="custom-input-item">
+              <IonLabel position="stacked">Password</IonLabel>
+              <IonInput
+                type="password"
+                placeholder="********"
+                onIonInput={(e) => setPassword(e.detail.value!)}
+              />
+            </IonItem>
+          </div>
+
+          <IonButton expand="block" onClick={handleLogin} className="main-btn">
+            เข้าสู่ระบบ
+          </IonButton>
+
+          <IonText color="medium" className="clickable-text" onClick={() => history.push('/register')}>
+            <p>ยังไม่มีบัญชี? <b>สมัครสมาชิกที่นี่</b></p>
+          </IonText>
         </div>
-
-        <IonItem lines="none" className="ion-margin-bottom">
-          <IonInput
-            label="Email" labelPlacement="stacked" fill="outline"
-            type="email" placeholder="example@gmail.com"
-            onIonInput={(e) => setEmail(e.detail.value!)}
-          />
-        </IonItem>
-
-        <IonItem lines="none" className="ion-margin-bottom">
-          <IonInput
-            label="Password" labelPlacement="stacked" fill="outline"
-            type="password" placeholder="********"
-            onIonInput={(e) => setPassword(e.detail.value!)}
-          />
-        </IonItem>
-
-        <IonButton expand="block" onClick={handleLogin} style={{ '--background': '#688049' }}>
-          เข้าสู่ระบบ
-        </IonButton>
-
-        <IonText color="medium" onClick={() => history.push('/register')} style={{ cursor: 'pointer', display: 'block', marginTop: '20px' }}>
-          <p>ยังไม่มีบัญชี? <span style={{ color: '#1e88e5' }}>สมัครสมาชิกที่นี่</span></p>
-        </IonText>
 
         <IonLoading isOpen={showLoading} message={'กำลังเข้าสู่ระบบ...'} />
         <IonToast isOpen={!!errorMsg} message={errorMsg} duration={2000} onDidDismiss={() => setErrorMsg('')} color="danger" />

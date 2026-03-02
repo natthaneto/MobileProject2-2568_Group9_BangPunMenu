@@ -1,68 +1,59 @@
-import React, { useState, useRef } from 'react';
-import { 
-  IonContent, IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, 
-  IonTitle, IonInput, IonTextarea, IonSelect, IonSelectOption, IonButton,
-  IonIcon, IonLoading, IonToast, IonItem, IonLabel
+import React, { useState } from 'react';
+import {
+  IonContent, IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
+  IonItem, IonLabel, IonInput, IonTextarea, IonSelect, IonSelectOption, IonButton,
+  IonLoading, IonToast, IonIcon
 } from '@ionic/react';
-import { useHistory } from 'react-router-dom';
-import { cameraOutline } from 'ionicons/icons';
-import { auth, db, storage } from '../firebaseConfig';
+import { imageOutline } from 'ionicons/icons';
+import { auth, db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import './CreateRecipe.css'; // *** ตรวจสอบชื่อไฟล์ให้ตรงกัน ***
+import { useHistory } from 'react-router-dom';
+import './CreateRecipe.css';
 
 const CreateRecipe: React.FC = () => {
-  const history = useHistory();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // State สำหรับข้อมูลเมนู
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [steps, setSteps] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setSelectedImage(URL.createObjectURL(file));
-    }
-  };
+  const history = useHistory();
 
   const handleSendRecipe = async () => {
-    const user = auth.currentUser;
-    if (!user) return alert("กรุณาเข้าสู่ระบบก่อนโพสต์");
-    if (!name || !imageFile) return alert("กรุณาระบุชื่อเมนูและใส่รูปภาพ");
+    const user = auth.currentUser; // ดึงข้อมูล User ที่กำลังใช้งานอยู่
+
+    if (!user) {
+      setToastMsg("กรุณาเข้าสู่ระบบก่อน");
+      return;
+    }
+    if (!name.trim() || !category) {
+      setToastMsg("กรุณากรอกชื่อเมนูและเลือกหมวดหมู่");
+      return;
+    }
 
     setLoading(true);
     try {
-      const storageRef = ref(storage, `recipes/${Date.now()}_${user.uid}`);
-      await uploadBytes(storageRef, imageFile);
-      const imageUrl = await getDownloadURL(storageRef);
-
+      const finalImageUrl = "/assets/2771401.png";
+      
       await addDoc(collection(db, "recipes"), {
-        name,
-        description,
-        category,
-        ingredients,
-        steps,
-        imageUrl,
+        name: name.trim(),
+        category: category,
+        ingredients: ingredients,
+        steps: steps,
+        imageUrl: finalImageUrl,
+        // ดึงข้อมูลจาก user object โดยตรง
         authorId: user.uid,
-        authorName: user.displayName || "Natthanet",
+authorName: user.displayName || user.email?.split('@')[0] || "สมาชิก",        authorEmail: user.email,
+        authorAvatar: user.photoURL || "https://ionicframework.com/docs/img/demos/avatar.svg",
         createdAt: serverTimestamp()
       });
 
       setLoading(false);
-      setToastMsg("ลงสูตรอาหารสำเร็จแล้ว!");
+      setToastMsg("บันทึกเมนูสำเร็จ!");
       setTimeout(() => history.push('/recipes'), 1500);
     } catch (error: any) {
       setLoading(false);
-      setToastMsg("Error: " + error.message);
+      setToastMsg("เกิดข้อผิดพลาด: " + error.message);
     }
   };
 
@@ -70,62 +61,65 @@ const CreateRecipe: React.FC = () => {
     <IonPage>
       <IonHeader className="ion-no-border">
         <IonToolbar className="create-recipe-toolbar">
-          <IonButtons slot="start">
-            <IonBackButton defaultHref="/recipes" color="light" />
-          </IonButtons>
-          <IonTitle>โพสต์สูตรอาหาร</IonTitle>
+          <IonButtons slot="start"><IonBackButton defaultHref="/home" color="light" /></IonButtons>
+          <IonTitle>เพิ่มสูตรอาหาร</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <div className="create-recipe-container">
-          
-          {/* ส่วนอัปโหลดรูปภาพสไตล์เดียวกับหน้าฟีด */}
-          <div className="image-upload-box" onClick={() => fileInputRef.current?.click()}>
-            {selectedImage ? (
-              <img src={selectedImage} alt="Preview" className="recipe-preview-img" />
-            ) : (
-              <div className="upload-placeholder">
-                <IonIcon icon={cameraOutline} />
-                <p>คลิกเพื่อเพิ่มรูปภาพเมนู</p>
-              </div>
-            )}
-            <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileChange} />
+        <div className="image-upload-box" >
+          <div className="upload-placeholder" style={{ background: 'rgba(255,255,255,0.6)' }}>
+            <IonIcon icon={imageOutline} />
+            <p>ระบบรูปภาพปิดชั่วคราว (ใช้ภาพเริ่มต้น)</p>
           </div>
-
-          <div className="form-group">
-            <IonItem lines="none" className="custom-input-item">
-              <IonLabel position="stacked">ชื่อเมนู</IonLabel>
-              <IonInput placeholder="ระบุชื่อเมนู" onIonInput={e => setName(e.detail.value!)} />
-            </IonItem>
-
-            <IonItem lines="none" className="custom-input-item">
-              <IonLabel position="stacked">ประเภทอาหาร</IonLabel>
-              <IonSelect placeholder="เลือกประเภท" onIonChange={e => setCategory(e.detail.value)} interface="popover">
-                <IonSelectOption value="esarn">อาหารอีสาน</IonSelectOption>
-                <IonSelectOption value="thai">อาหารไทย</IonSelectOption>
-                <IonSelectOption value="halal">อาหารฮาลาล</IonSelectOption>
-                <IonSelectOption value="national">อาหารต่างชาติ</IonSelectOption>
-              </IonSelect>
-            </IonItem>
-
-            <IonItem lines="none" className="custom-input-item">
-              <IonLabel position="stacked">วัตถุดิบ</IonLabel>
-              <IonTextarea placeholder="ระบุวัตถุดิบและปริมาณ..." onIonInput={e => setIngredients(e.detail.value!)} rows={3} />
-            </IonItem>
-
-            <IonItem lines="none" className="custom-input-item">
-              <IonLabel position="stacked">ขั้นตอนการทำ</IonLabel>
-              <IonTextarea placeholder="บอกวิธีการทำเป็นข้อๆ..." onIonInput={e => setSteps(e.detail.value!)} rows={4} />
-            </IonItem>
-          </div>
-
-          <IonButton expand="block" className="post-btn" onClick={handleSendRecipe}>
-            ส่งเมนูอาหาร
-          </IonButton>
         </div>
 
-        <IonLoading isOpen={loading} message="กำลังบันทึกข้อมูล..." />
+        <IonItem lines="none" className="custom-input-item">
+          <IonLabel position="stacked">ชื่อเมนูอาหาร</IonLabel>
+          <IonInput
+            placeholder="เช่น ข้าวผัดกะเพรา"
+            value={name}
+            onIonInput={(e) => setName(e.detail.value!)}
+          />
+        </IonItem>
+
+        <IonItem lines="none" className="custom-input-item">
+          <IonLabel position="stacked">หมวดหมู่</IonLabel>
+          <IonSelect
+            placeholder="เลือกหมวดหมู่"
+            value={category}
+            onIonChange={(e) => setCategory(e.detail.value)}
+          >
+            <IonSelectOption value="esarn">อาหารอีสาน</IonSelectOption>
+            <IonSelectOption value="thai">อาหารไทย</IonSelectOption>
+            <IonSelectOption value="halal">อาหารฮาลาล</IonSelectOption>
+            <IonSelectOption value="national">อาหารต่างชาติ</IonSelectOption>
+          </IonSelect>
+        </IonItem>
+
+        <IonItem lines="none" className="custom-input-item">
+          <IonLabel position="stacked">วัตถุดิบ</IonLabel>
+          <IonTextarea
+            placeholder="ระบุวัตถุดิบ..."
+            value={ingredients}
+            onIonInput={(e) => setIngredients(e.detail.value!)}
+            rows={4}
+          />
+        </IonItem>
+
+        <IonItem lines="none" className="custom-input-item">
+          <IonLabel position="stacked">ขั้นตอนการทำ</IonLabel>
+          <IonTextarea
+            placeholder="ระบุวิธีทำ..."
+            value={steps}
+            onIonInput={(e) => setSteps(e.detail.value!)}
+            rows={6}
+          />
+        </IonItem>
+
+        <IonButton expand="block" onClick={handleSendRecipe} className="post-btn">ลงสูตรอาหาร</IonButton>
+
+        <IonLoading isOpen={loading} message="กำลังบันทึก..." />
         <IonToast isOpen={!!toastMsg} message={toastMsg} duration={2000} onDidDismiss={() => setToastMsg('')} />
       </IonContent>
     </IonPage>
