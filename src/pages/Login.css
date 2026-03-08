@@ -58,3 +58,15 @@ ion-label {
   color: #688049;
   text-decoration: underline;
 }
+
+/* เพิ่มส่วนนี้ต่อท้ายเพื่อเปลี่ยนสีตัวอักษรใน Input */
+.custom-input-item ion-input {
+  --color: #333333; /* เปลี่ยนสีตรงนี้ตามที่ต้องการ (เช่น สีเทาเข้ม) */
+  font-weight: 500;   /* ปรับความหนาของตัวอักษร (ถ้าต้องการ) */
+}
+
+/* กรณีต้องการเปลี่ยนสี Placeholder (ตัวหนังสือจางๆ ตอนยังไม่พิมพ์) */
+.custom-input-item ion-input {
+  --placeholder-color: #999999;
+  --placeholder-opacity: 0.8;
+}
