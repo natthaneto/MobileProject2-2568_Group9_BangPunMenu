@@ -3,8 +3,8 @@
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  height: calc(70px + env(safe-area-inset-bottom)) !important;
-  padding-bottom: env(safe-area-inset-bottom) !important;
+  padding-top: 0 !important;
+  padding-bottom: env(safe-area-inset-bottom) !important; /* ระยะล่างบวก Safe Area */
   background-color: #688049 !important; /* [cite: 35] */
   z-index: 9999999 !important; /* สูงสุดเพื่อให้ลอยเหนือทุกหน้าจอ */
   display: flex;
@@ -23,10 +23,10 @@
 }
 
 .tab-btn {
-  font-size: 32px;
+  font-size: 30px;
   color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  padding: 15px; /* เพิ่ม Hit Area สำหรับ MacBook M1 */
+  padding: 8px 15px !important; /* เพิ่ม Hit Area สำหรับ MacBook M1 */
   transition: all 0.2s ease;
   pointer-events: auto !important;
 }
@@ -37,13 +37,10 @@
 }
 
 .bottom-tabs-container { 
-  /* ดันไอคอนขึ้นมาจากก้นจอตามระยะที่มือถือแต่ละเครื่องกำหนด */
-  padding-bottom: env(safe-area-inset-bottom); 
-  
-  /* ถ้ามันสูงไม่พอ สามารถบวกระยะเพิ่มเองได้ เช่น */
-  /* padding-bottom: calc(env(safe-area-inset-bottom) + 10px); */
-  
-  height: auto; /* ให้ความสูงยืดตาม padding */
+  /* ลบ padding-bottom ของเดิมออกให้หมดครับ */
+  height: auto; 
   display: flex;
   align-items: center;
+  width: 100%; /* เพิ่มเพื่อให้กระจายตัวเต็มพื้นที่ */
+  justify-content: center;
 }
